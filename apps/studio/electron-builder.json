@@ -1,0 +1,19 @@
+{
+    "appId": "com.lumacue.lumacue",
+    "files": [
+        "dist-electron",
+        "dist-react"
+    ],
+    "mac": {
+        "target": "dmg"
+    },
+    "linux": {
+        "target": [
+            "AppImage"
+        ],
+        "category": "Utility"
+    },
+    "win": {
+        "target": ["portable", "msi"]
+    }
+}
