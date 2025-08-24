@@ -2,45 +2,42 @@ import {
   app,
   BrowserWindow,
   ipcMain,
-  globalShortcut,
   screen,
+  globalShortcut,
   Menu,
 } from "electron";
-import * as path from 'path';
+import * as path from "path";
 import { isDev } from "../utils/is-dev.js";
 
 let mainWindow: BrowserWindow | null = null;
-let miniWindow: BrowserWindow | null = null;
+let chatWindow: BrowserWindow | null = null;
+let firstLaunch = true;
 
 function createMainWindow(): void {
   const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize;
 
   mainWindow = new BrowserWindow({
-    width: 600,
+    width: 800,
     height: 600,
     show: false,
-    resizable: true,
     frame: false,
-    titleBarStyle: 'hidden',
-    skipTaskbar: true,
     transparent: true,
-    backgroundColor: '#00000000',
+    resizable: true,
+    skipTaskbar: false,
+    backgroundColor: "#00000000",
     webPreferences: {
-      preload: path.join(app.getAppPath(), "dist-electron/main/preload.js"),
+      preload: path.join(app.getAppPath(), "dist-electron/main/preload.mjs"),
       contextIsolation: true,
+      sandbox: false,
       nodeIntegration: false,
     },
-    roundedCorners: true,
-    hasShadow: true,
-    minimizable: false,
-    maximizable: false,
-    closable: true,
-    fullscreenable: false,
   });
+
   if (isDev()) {
     mainWindow.loadURL("http://localhost:5000");
+    mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {
-    mainWindow.loadFile(path.join(app.getAppPath(), "/dist-react/index.html"));
+    mainWindow.loadFile(path.join(app.getAppPath(), "dist-react/index.html"));
   }
 
   mainWindow.once("ready-to-show", () => {
@@ -52,67 +49,117 @@ function createMainWindow(): void {
   mainWindow.on("closed", () => {
     mainWindow = null;
   });
-  if (isDev()) {
-    mainWindow.webContents.openDevTools();
-  }
+
+  // if (isDev()) {
+  //   mainWindow.webContents.openDevTools();
+  // }
   Menu.setApplicationMenu(null);
 }
 
-function setOverlayMode(): void {
-  const { width: sw } = screen.getPrimaryDisplay().workAreaSize;
-  const w = 500;
-  const h = 300;
-
+function setCompactMode(): void {
   if (!mainWindow) return;
+
+  const { width: sw } = screen.getPrimaryDisplay().workAreaSize;
+  const w = 300;
+  const h = 60;
 
   mainWindow.setSize(w, h);
   mainWindow.setAlwaysOnTop(true, "screen-saver");
   mainWindow.setVisibleOnAllWorkspaces(true);
+  mainWindow.setResizable(false);
   mainWindow.setFullScreenable(false);
-  mainWindow.setResizable(true);
-  mainWindow.setPosition(sw - w - 20, 20);
-  mainWindow.webContents.send("lumacue:mode", "overlay");
+  mainWindow.setPosition(Math.floor(sw / 2 - w / 2), 20);
+  mainWindow.webContents.send("lumacue:mode", "compact");
 }
 
-function createMiniWindow(): void {
-  if (miniWindow) return;
+function createChatWindow(): void {
+  // if chat already open, focus it
+  if (chatWindow && !chatWindow.isDestroyed()) {
+    chatWindow.show();
+    chatWindow.focus();
+    return;
+  }
 
-  const { width: sw } = screen.getPrimaryDisplay().workAreaSize;
-  const size = 32;
+  // default chat size (will be adjustable by renderer via set-height)
+  const defaultW = 600;
+  const defaultH = 300;
+  const gap = 8;
 
-  miniWindow = new BrowserWindow({
-    width: size,
-    height: size,
-    x: sw - size - 16,
-    y: 16,
+  // compute position under header if header exists, else center
+  let x = undefined as number | undefined;
+  let y = undefined as number | undefined;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    const headerBounds = mainWindow.getBounds();
+    // center chat horizontally relative to header
+    x = Math.floor(headerBounds.x + headerBounds.width / 2 - defaultW / 2);
+    y = headerBounds.y + headerBounds.height + gap;
+    // clamp to screen bounds
+    const { width: sw } = screen.getPrimaryDisplay().workAreaSize;
+    x = Math.max(8, Math.min(x, sw - defaultW - 8));
+  } else {
+    // fallback center top-ish
+    const { width: sw } = screen.getPrimaryDisplay().workAreaSize;
+    x = Math.floor((sw - defaultW) / 2);
+    y = 120;
+  }
+
+  chatWindow = new BrowserWindow({
+    width: defaultW,
+    height: defaultH,
+    x,
+    y,
     frame: false,
     transparent: true,
+    resizable: true,
     alwaysOnTop: true,
-    skipTaskbar: true,
-    resizable: false,
+    skipTaskbar: false,
+    hasShadow: true,
     webPreferences: {
-      preload: path.join(app.getAppPath(), "dist-electron/main/preload.js"),
+      preload: path.join(app.getAppPath(), "dist-electron/main/chat-preload.mjs"),
       contextIsolation: true,
+      sandbox: false,
       nodeIntegration: false,
     },
-    roundedCorners: true,
-    hasShadow: true,
   });
 
-  miniWindow.loadFile(path.join(app.getAppPath(), "static/mini.html"));
+  if (isDev()) {
+    chatWindow.loadURL("http://localhost:5000/chat.html");
+    // do not open devtools by default for chatWindow
+  } else {
+    chatWindow.loadFile(path.join(app.getAppPath(), "dist-react/chat.html"));
+  }
 
-  miniWindow.on("closed", () => {
-    miniWindow = null;
+  // Ensure the chat is independently closable
+  chatWindow.on("closed", () => {
+    chatWindow = null;
   });
+
+  // Keep it above other windows
+  chatWindow.setAlwaysOnTop(true, "screen-saver");
 }
+
+function clampAndSetChatHeight(desiredHeight: number) {
+  if (!chatWindow) return;
+  const display = screen.getPrimaryDisplay();
+  const maxAllowed = Math.floor(display.workAreaSize.height * 0.8);
+  const minAllowed = 120;
+  const final = Math.max(minAllowed, Math.min(desiredHeight, maxAllowed));
+  const [w] = chatWindow.getSize();
+  chatWindow.setSize(w, final, true);
+}
+
+// IPC listener for Run button
+ipcMain.on("lumacue:open-chat", () => {
+  createChatWindow();
+});
+
 
 app.whenReady().then(() => {
   createMainWindow();
 
   const registered = globalShortcut.register("CommandOrControl+T", () => {
     if (!mainWindow) return;
-
-    if (mainWindow && mainWindow.isVisible()) {
+    if (mainWindow.isVisible()) {
       mainWindow.hide();
     } else {
       mainWindow.show();
@@ -120,58 +167,60 @@ app.whenReady().then(() => {
     }
   });
 
-  if (!registered) {
-    console.warn("Global shortcut registration failed");
-  }
+  if (!registered) console.warn("Global shortcut registration failed");
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow();
-    }
+    if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
   });
 });
 
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  if (process.platform !== "darwin") app.quit();
 });
 
 app.on("before-quit", () => {
   globalShortcut.unregisterAll();
 });
 
-// IPC handlers
-ipcMain.handle("lumacue:enter-overlay", () => {
-  setOverlayMode();
-  return true;
+// IPC Handlers
+ipcMain.handle("lumacue:first-launch", () => {
+  const wasFirst = firstLaunch;
+  if (firstLaunch) {
+    firstLaunch = false;
+  }
+  return wasFirst;
 });
 
-ipcMain.on("lumacue:minimize", () => {
-  if (mainWindow) {
-    mainWindow.hide();
-    createMiniWindow();
+ipcMain.on("lumacue:enter-compact", () => {
+  setCompactMode();
+});
+
+ipcMain.on("lumacue:open-chat", () => {
+  createChatWindow();
+});
+
+// CLOSE chat window (called from chat renderer)
+ipcMain.on("lumacue:close-chat", () => {
+  if (chatWindow) {
+    chatWindow.close();
+    chatWindow = null;
   }
 });
 
-ipcMain.on("lumacue:restore", () => {
-  if (miniWindow) {
-    miniWindow.close();
-    miniWindow = null;
-  }
-  if (mainWindow) {
-    mainWindow.show();
-    mainWindow.focus();
-    setOverlayMode();
-  }
+// CHAT requests to set content height
+ipcMain.on("lumacue:chat:set-height", (_evt, desired: number) => {
+  clampAndSetChatHeight(Number(desired) || 0);
 });
 
-ipcMain.handle("lumacue:get-position", () => {
-  const { width: sw, height: sh } = screen.getPrimaryDisplay().workAreaSize;
-  return { sw, sh };
-});
-
-// Handle app termination
-app.on("will-quit", () => {
-  globalShortcut.unregisterAll();
+// Optional: if header moves in future, you can reposition chat to stay attached
+ipcMain.on("lumacue:reposition-chat-below-header", () => {
+  if (!chatWindow || !mainWindow) return;
+  const gap = 8;
+  const headerBounds = mainWindow.getBounds();
+  const [cw, ch] = chatWindow.getSize();
+  let x = Math.floor(headerBounds.x + headerBounds.width / 2 - cw / 2);
+  let y = headerBounds.y + headerBounds.height + gap;
+  const { width: sw } = screen.getPrimaryDisplay().workAreaSize;
+  x = Math.max(8, Math.min(x, sw - cw - 8));
+  chatWindow.setPosition(x, y, true);
 });

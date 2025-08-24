@@ -1,18 +1,14 @@
 import { contextBridge, ipcRenderer } from "electron";
 
-// Lumacue API
-contextBridge.exposeInMainWorld('lumacue', {
-    enterOverlay: () => ipcRenderer.invoke('lumacue:enter-overlay'),
-    minimize: () => ipcRenderer.send('lumacue:minimize'),
-    restore: () => ipcRenderer.send('lumacue:restore'),
-    getPosition: () => ipcRenderer.invoke('lumacue:get-position'),
-    onModeChange: (callback: (mode: string) => void) => {
-        ipcRenderer.on('lumacue:mode', (_event, mode) => callback(mode));
-    },
-    removeAllListeners: (channel: string) => {
-        ipcRenderer.removeAllListeners(channel);
-    }
+contextBridge.exposeInMainWorld("lumacue", {
+  isFirstLaunch: async (): Promise<boolean> => {
+    return await ipcRenderer.invoke("lumacue:first-launch");
+  },
+  enterCompact: () => ipcRenderer.send("lumacue:enter-compact"),
+  openChat: () => ipcRenderer.send("lumacue:open-chat"),
+  repositionChatBelowHeader: () => ipcRenderer.send("lumacue:reposition-chat-below-header"),
 });
+
 
 // AI API
 contextBridge.exposeInMainWorld('ai', {

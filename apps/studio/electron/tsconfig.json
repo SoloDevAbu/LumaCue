@@ -1,6 +1,11 @@
 {
-    "extends": "@repo/typescript-config/base.json",
-    "compilerOptions": {
-        "outDir": "../dist-electron",
-    }
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "../dist-electron",
+    "skipLibCheck": true
+  },
+  "include": ["./**/*.ts", "./**/*.mts"]
 }
