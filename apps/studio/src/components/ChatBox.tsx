@@ -16,15 +16,26 @@ export default function ChatBox() {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" });
   }, [messages.length]);
 
-  const sendMessage = () => {
-    const t = input.trim();
-    if (!t) return;
-    setMessages((m) => [...m, { role: "user", text: t }]);
+async function sendMessage(userMessage: string) {
+  // Messages follow Vercel AI SDK format
+  const messages = [
+    { role: "system", content: "You are LumaCue AI Assistant. You will be giving a brief explaination about what the user asks in less than 50 words." },
+    { role: "user", content: userMessage },
+  ];
+
+  setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
+
+  const result = await window.lumacueChatWindow?.chat(messages);
+
+  if (result?.success) {
+    console.log("AI Response:", result.text);
+    setMessages((prev) => [...prev, { role: "ai", text: result.text || "" }]);
     setInput("");
-    setTimeout(() => {
-      setMessages((m) => [...m, { role: "ai", text: `✨ Predefined response for: ${t}` }]);
-    }, 350);
-  };
+    
+  } else {
+    console.error("LLM Error:", result?.error);
+  }
+}
 
   return (
     <div
@@ -52,9 +63,9 @@ export default function ChatBox() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask anything..."
           className="flex-1 bg-white/6 rounded-lg px-3 py-2 text-sm outline-none placeholder-white/50"
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          onKeyDown={(e) => e.key === "Enter" && sendMessage(input)}
         />
-        <button onClick={sendMessage} className="bg-white/6 hover:bg-white/20 px-4 py-2 rounded-lg text-sm">
+        <button onClick={() => sendMessage(input)} className="bg-white/6 hover:bg-white/20 px-4 py-2 rounded-lg text-sm">
           <SendHorizonal height={16} width={16}/>
         </button>
       </div>

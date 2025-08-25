@@ -8,6 +8,8 @@ import {
 } from "electron";
 import * as path from "path";
 import { isDev } from "../utils/is-dev.js";
+import 'dotenv/config'
+import "../main/chat/index.js";
 
 let mainWindow: BrowserWindow | null = null;
 let chatWindow: BrowserWindow | null = null;
@@ -125,6 +127,7 @@ function createChatWindow(): void {
   if (isDev()) {
     chatWindow.loadURL("http://localhost:5000/chat.html");
     // do not open devtools by default for chatWindow
+    chatWindow.webContents.openDevTools({ mode: "detach" });
   } else {
     chatWindow.loadFile(path.join(app.getAppPath(), "dist-react/chat.html"));
   }

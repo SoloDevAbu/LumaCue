@@ -7,6 +7,7 @@ declare global {
       isFirstLaunch: () => Promise<boolean>;
       enterCompact: () => void;
       openChat: () => void;
+      chat: (messages: { role: string; content: string }[]) => Promise<{ success: boolean; text?: string; error?: string }>;
       repositionChatBelowHeader: () => void;
     };
   }

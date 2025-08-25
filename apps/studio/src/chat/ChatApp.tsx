@@ -7,6 +7,8 @@ declare global {
     lumacueChatWindow?: {
       close: () => void;
       setHeight: (h: number) => void;
+      chat: (messages: { role: string; content: string }[]) => Promise<{ success: boolean; text?: string; error?: string }>;
+      abort: () => void;
     };
   }
 }
