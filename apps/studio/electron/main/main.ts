@@ -37,7 +37,7 @@ function createMainWindow(): void {
 
   if (isDev()) {
     mainWindow.loadURL("http://localhost:5000");
-    mainWindow.webContents.openDevTools({ mode: "detach" });
+    // mainWindow.webContents.openDevTools({ mode: "detach" });
   } else {
     mainWindow.loadFile(path.join(app.getAppPath(), "dist-react/index.html"));
   }
@@ -70,7 +70,7 @@ function setCompactMode(): void {
   mainWindow.setVisibleOnAllWorkspaces(true);
   mainWindow.setResizable(false);
   mainWindow.setFullScreenable(false);
-  mainWindow.setPosition(Math.floor(sw / 2 - w / 2), 20);
+  mainWindow.setPosition(Math.floor(sw / 2 - w / 2), 15);
   mainWindow.webContents.send("lumacue:mode", "compact");
 }
 
@@ -153,7 +153,12 @@ function clampAndSetChatHeight(desiredHeight: number) {
 
 // IPC listener for Run button
 ipcMain.on("lumacue:open-chat", () => {
-  createChatWindow();
+  if (chatWindow) {
+    chatWindow.close();
+    chatWindow = null;
+  } else {
+    createChatWindow();
+  }
 });
 
 
@@ -196,10 +201,6 @@ ipcMain.handle("lumacue:first-launch", () => {
 
 ipcMain.on("lumacue:enter-compact", () => {
   setCompactMode();
-});
-
-ipcMain.on("lumacue:open-chat", () => {
-  createChatWindow();
 });
 
 // CLOSE chat window (called from chat renderer)

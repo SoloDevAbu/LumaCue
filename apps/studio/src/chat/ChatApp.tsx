@@ -7,7 +7,11 @@ declare global {
     lumacueChatWindow?: {
       close: () => void;
       setHeight: (h: number) => void;
-      chat: (messages: { role: string; content: string }[]) => Promise<{ success: boolean; text?: string; error?: string }>;
+      chat: (messages: { role: string; content: string }[]) => Promise<string[]>;
+      chatStream: (
+        messages: { role: string; content: string }[],
+        onChunk: (chunk: string) => void
+      ) => Promise<void>;
       abort: () => void;
     };
   }
