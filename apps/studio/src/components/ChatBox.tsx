@@ -8,6 +8,7 @@ export default function ChatBox() {
   >([]);
   const [input, setInput] = useState("");
   const listRef = useRef<HTMLDivElement | null>(null);
+  const currentMessageRef = useRef<string>("");
 
   useEffect(() => {
     setMessages([{ role: "ai", text: "Hi, Welcome to LumaCue" }]);
@@ -41,10 +42,11 @@ export default function ChatBox() {
     if (stream) {
       for await (const chunk of stream) {
         console.log('Real-time chunk received:', chunk);
-        aiText += chunk;
+        aiText = chunk;
+        currentMessageRef.current = currentMessageRef.current + chunk;
         setMessages(prev => {
           const updated = [...prev];
-          updated[updated.length - 1] = { role: "ai", text: aiText };
+          updated[updated.length - 1] = { role: "ai", text: currentMessageRef.current };
           return updated;
         });
       }
