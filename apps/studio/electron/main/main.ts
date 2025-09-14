@@ -70,7 +70,7 @@ function setCompactMode(): void {
   mainWindow.setVisibleOnAllWorkspaces(true);
   mainWindow.setResizable(false);
   mainWindow.setFullScreenable(false);
-  mainWindow.setPosition(Math.floor(sw / 2 - w / 2), 15);
+  mainWindow.setPosition(Math.floor(sw / 2 - w / 2), 20);
   mainWindow.webContents.send("lumacue:mode", "compact");
 }
 
@@ -127,7 +127,7 @@ function createChatWindow(): void {
   if (isDev()) {
     chatWindow.loadURL("http://localhost:5000/chat.html");
     // do not open devtools by default for chatWindow
-    chatWindow.webContents.openDevTools({ mode: "detach" });
+    // chatWindow.webContents.openDevTools({ mode: "detach" });
   } else {
     chatWindow.loadFile(path.join(app.getAppPath(), "dist-react/chat.html"));
   }
