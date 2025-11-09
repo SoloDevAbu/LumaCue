@@ -1,4 +1,4 @@
-export default function Message({ role, text }: { role: "user" | "ai"; text: string }) {
+export default function Message({ role, text }: { role: "user" | "assistant"; text: string }) {
   const isUser = role === "user";
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>

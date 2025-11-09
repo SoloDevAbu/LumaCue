@@ -5,7 +5,14 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "../dist-electron",
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@lumacue/ipc": [
+        "../../../packages/ipc/index.d.ts",
+        "../../../packages/ipc/index.js"
+      ]
+    }
   },
-  "include": ["./**/*.ts", "./**/*.mts"]
+  "include": ["./**/*.ts", "./**/*.mts", "./**/*.d.ts"]
 }

@@ -1,30 +1,29 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Header from "./components/Header";
-
-declare global {
-  interface Window {
-    lumacue: {
-      isFirstLaunch: () => Promise<boolean>;
-      enterCompact: () => void;
-      openChat: () => void;
-      chat: (messages: { role: string; content: string }[]) => Promise<{ success: boolean; text?: string; error?: string }>;
-      repositionChatBelowHeader: () => void;
-    };
-  }
-}
 
 function App() {
   const [mode, setMode] = useState<"auth" | "compact">("auth");
-  // const [open, setOpen] = useState(false);
-  const headerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    window.lumacue.isFirstLaunch().then((first) => {
-      if (!first) {
-        setMode("compact");
-        window.lumacue.enterCompact();
+    let isMounted = true;
+
+    async function determineInitialMode() {
+      try {
+        const firstLaunch = await window.lumacue?.isFirstLaunch?.();
+        if (isMounted && firstLaunch === false) {
+          setMode("compact");
+          window.lumacue?.enterCompact?.();
+        }
+      } catch (error) {
+        console.error("Failed to determine launch state", error);
       }
-    });
+    }
+
+    determineInitialMode();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   if (mode === "auth") {
@@ -36,7 +35,7 @@ function App() {
             className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg"
             onClick={() => {
               setMode("compact");
-              window.lumacue.enterCompact();
+              window.lumacue?.enterCompact?.();
             }}
           >
             Continue
@@ -48,17 +47,7 @@ function App() {
 
   return (
     <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999]">
-      {/* Header */}
-      <div ref={headerRef}>
-        <Header />
-      </div>
-
-      {/* ChatBox dialog */}
-      {/* {open && (
-        <div className="relative mt-2 flex justify-center">
-          <ChatBox width={(headerRef.current?.offsetWidth ?? 300) * 2} />
-        </div>
-      )} */}
+      <Header />
     </div>
   );
 }
