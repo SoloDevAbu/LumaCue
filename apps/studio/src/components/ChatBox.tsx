@@ -7,7 +7,15 @@ type ChatMessage = {
   text: string;
 };
 
-const SYSTEM_PROMPT = "You are LumaCue AI Assistant. You will be giving a brief explanation about what the user asks in less than 50 words.";
+type ConversationMessage = {
+  role: "system" | "user";
+  content: string;
+};
+
+const SYSTEM_PROMPT = [
+  "You are LumaCue AI Assistant. Provide concise answers under 50 words unless the user explicitly asks for more.",
+  "When summarizing clipboard content, a separate message will provide the clipboard text you should summarize.",
+].join(" ");
 
 function appendOnlyNewText(current: string, chunk: string) {
   // Find largest overlap of current's end with chunk's start
@@ -42,7 +50,8 @@ export default function ChatBox() {
     if (!userMessage || isProcessing) return;
 
     setIsProcessing(true);
-    const payload = [
+
+    const payload: ConversationMessage[] = [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: userMessage },
     ];

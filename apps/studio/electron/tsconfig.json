@@ -11,6 +11,10 @@
       "@lumacue/ipc": [
         "../../../packages/ipc/index.d.ts",
         "../../../packages/ipc/index.js"
+      ],
+      "@lumacue/ai": [
+        "../../../packages/ai/index.d.ts",
+        "../../../packages/ai/index.js"
       ]
     }
   },
