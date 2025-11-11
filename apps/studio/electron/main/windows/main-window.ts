@@ -39,7 +39,6 @@ export function createMainWindow(): BrowserWindow {
 
   if (isDev()) {
     window.loadURL("http://localhost:5000");
-    window.webContents.openDevTools({ mode: "detach" });
   } else {
     window.loadFile(path.join(app.getAppPath(), "dist-react/index.html"));
   }

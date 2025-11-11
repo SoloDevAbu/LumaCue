@@ -5,6 +5,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "../dist-electron",
+    "rootDir": ".",
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
@@ -13,8 +14,8 @@
         "../../../packages/ipc/index.js"
       ],
       "@lumacue/ai": [
-        "../../../packages/ai/index.d.ts",
-        "../../../packages/ai/index.js"
+        "../../../packages/ai/dist/index.d.ts",
+        "../../../packages/ai/dist/index.js"
       ]
     }
   },

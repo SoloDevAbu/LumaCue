@@ -5,6 +5,7 @@
   "type": "module",
   "main": "dist-electron/main/main.js",
   "scripts": {
+    "predev:electron": "yarn workspace @lumacue/ai build && yarn transpile:electron",
     "dev:react": "vite",
     "dev:electron": "cross-env NODE_ENV=development electron .",
     "build": "tsc -b && vite build",

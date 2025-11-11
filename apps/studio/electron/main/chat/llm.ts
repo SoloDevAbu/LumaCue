@@ -1,11 +1,10 @@
 import { clipboard } from "electron";
 import { streamText, type ModelMessage } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createClipboardTool } from "@lumacue/ai";
+import { createClipboardTool, LUMACUE_SYSTEM_PROMPT } from "@lumacue/ai";
 
 const google = createGoogleGenerativeAI({ apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY! });
 const DEFAULT_MODEL = "gemini-2.0-flash";
-const CLIPBOARD_REQUEST_REGEX = /\b(summarize|summary|summarise|summarize)\b.*\b(clipboard|copied|paste[d]?)\b|\bclipboard\b/i;
 const clipboardTool = createClipboardTool(async () => clipboard.readText());
 
 interface PreparedMessages {
@@ -25,56 +24,23 @@ class LlmManager {
   }
 
   private async prepareMessages(messages: ModelMessage[]): Promise<PreparedMessages> {
-    const latestUserMessage = [...messages]
+    const withSystemPrompt = messages.some((msg) => msg.role === "system")
+      ? messages
+      : [{ role: "system" as const, content: LUMACUE_SYSTEM_PROMPT }, ...messages];
+
+    const latestUserMessage = [...withSystemPrompt]
       .reverse()
       .find((msg) => msg.role === "user");
 
     if (!latestUserMessage) {
-      return { messages };
-    }
-
-    const latestUserText = typeof latestUserMessage.content === "string"
-      ? latestUserMessage.content
-      : Array.isArray(latestUserMessage.content)
-        ? latestUserMessage.content
-            .map((part: any) => (typeof part?.text === "string" ? part.text : ""))
-            .join(" ")
-        : "";
-
-    if (!CLIPBOARD_REQUEST_REGEX.test(latestUserText)) {
-      return { messages };
-    }
-
-    const clipboardResult = await clipboardTool.execute({ purpose: "summarize clipboard" });
-    const clipboardText = clipboardResult?.clipboardText?.trim();
-
-    if (!clipboardText) {
       return {
-        messages,
-        errorMessage: "I couldn't find any text in your clipboard. Copy the content again and try summarizing once more.",
+        messages: withSystemPrompt,
+        errorMessage: "No user message provided.",
       };
     }
 
-    const annotationLines = [
-      "The user requested a clipboard summary.",
-      clipboardResult?.note ? `Tool note: ${clipboardResult.note}` : null,
-      clipboardResult?.truncated ? "Clipboard text was truncated for processing." : null,
-    ].filter(Boolean);
-
-    const augmentedMessages: ModelMessage[] = [
-      ...messages,
-      {
-        role: "assistant",
-        content: annotationLines.join(" "),
-      },
-      {
-        role: "user",
-        content: `Clipboard text to summarize:\n${clipboardText}`,
-      },
-    ];
-
     return {
-      messages: augmentedMessages,
+      messages: withSystemPrompt,
     };
   }
 
@@ -96,6 +62,8 @@ class LlmManager {
         maxOutputTokens: 300,
         temperature: 0.2,
         topP: 0.4,
+        tools: { clipboardTool },
+        stopWhen: [],
       });
 
       for await (const part of fullStream) {
