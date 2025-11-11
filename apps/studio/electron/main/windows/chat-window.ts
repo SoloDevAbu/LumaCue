@@ -62,7 +62,7 @@ function createChatWindow(): BrowserWindow {
 
   if (isDev()) {
     window.loadURL("http://localhost:5000/chat.html");
-    window.webContents.openDevTools({ mode: "detach" });
+    // window.webContents.openDevTools({ mode: "detach" });
   } else {
     window.loadFile(path.join(app.getAppPath(), "dist-react/chat.html"));
   }
